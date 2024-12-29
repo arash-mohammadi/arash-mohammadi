@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://s3.tradingview.com/tv.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+  <script>
+    const widget = new TradingView.widget({
+      container_id: "chart",
+      width: "100%",
+      height: "100%",
+      symbol: "BTCUSD",
+      interval: "1",
+      timeframe: "1D",
+      theme: "dark",
+      custom_css_url: "",
+      library_path: "https://dollarnet.net/charting_library/charting_library.standalone.js",
+      locale: "en",
+      datafeed: {
+        onReady: (callback) => {
+          setTimeout(() => callback({
+            supports_marks: false,
+            supports_timescale_marks: false,
+            supports_time: true
+          }), 0);
+        },
+        resolveSymbol: (symbolName, onSymbolResolvedCallback) => {
+          setTimeout(() => onSymbolResolvedCallback({
+            name: "",
+            ticker: "BTCUSD",
+            description: "Bitcoin / US Dollar",
+            type: "stock",
+            session: "24x7",
+            timezone: "Etc/UTC",
+            pricescale: 100,
+            minmov: 1,
+            has_intraday: true,
+            has_seconds: false,
+            has_daily: true,
+            has_weekly_and_monthly: false,
+            supported_resolutions: ["1", "5", "15", "30", "60", "1D"]
+          }), 0);
+        },
+        getBars: (symbolInfo, resolution, from, to, onHistoryCallback, onErrorCallback) => {
+          // Fetch historical data from your API
+          // ttps://dollarnet.net/candles?symbol=$coinName&resolution=$selectedInterval&from=$from&to=$to'));
+          fetch('https://dollarnet.net/candles?symbol=BTCUSD&resolution=1&from=1609459200&to=1612137600')
+            .then(response => response.json())
+            .then(data => {
+              const bars = data.map(bar => ({
+                time: bar.time * 1000,
+                open: bar.open,
+                high: bar.high,
+                low: bar.low,
+                close: bar.close
+              }));
+              if (bars.length > 0) {
+                onHistoryCallback(bars, { noData: false });
+              } else {
+                onHistoryCallback([], { noData: true });
+              }
+            })
+            .catch(onErrorCallback);
+        },
+        subscribeBars: (symbolInfo, resolution, onRealtimeCallback, subscribeUID, onResetCacheNeededCallback) => {
+          // Subscribe to live data from your WebSocket
+          // 
+          const socket = new WebSocket('wss://dollarnet.net/websockets/');
+          socket.onmessage = event => {
+            const bar = JSON.parse(event.data);
+            onRealtimeCallback({
+              time: bar.time * 1000,
+              open: bar.open,
+              high: bar.high,
+              low: bar.low,
+              close: bar.close
+            });
+          };
+        },
+        unsubscribeBars: (subscriberUID) => {
+          // Unsubscribe from WebSocket
+          socket.close();
+        }
+      },
+      overrides: {}
+    });
+  </script>
+</body>
+</html>
+
